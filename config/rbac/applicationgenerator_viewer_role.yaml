@@ -1,0 +1,20 @@
+# permissions to do viewer applicationgenerators.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: applicationgenerator-viewer-role
+rules:
+- apiGroups:
+  - appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  resources:
+  - applicationgenerators
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  resources:
+  - applicationgenerators/status
+  verbs:
+  - get

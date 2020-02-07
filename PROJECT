@@ -1,3 +1,7 @@
 domain: appgenerator.rm-rf.ca
 repo: github.com/dgoodwin/argocd-appgenerator
+resources:
+- group: appgenerator.rm-rf.ca
+  kind: ApplicationGenerator
+  version: v1
 version: "2"
