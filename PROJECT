@@ -1,0 +1,3 @@
+domain: appgenerator.rm-rf.ca
+repo: github.com/dgoodwin/argocd-appgenerator
+version: "2"
