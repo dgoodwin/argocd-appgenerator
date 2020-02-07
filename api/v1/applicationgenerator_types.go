@@ -16,6 +16,7 @@ limitations under the License.
 package v1
 
 import (
+	argoapi "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,6 +30,8 @@ type ApplicationGeneratorSpec struct {
 
 	// Foo is an example field of ApplicationGenerator. Edit ApplicationGenerator_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
+
+	ApplicationSpec argoapi.ApplicationSpec `json:"applicationSpec"`
 }
 
 // ApplicationGeneratorStatus defines the observed state of ApplicationGenerator

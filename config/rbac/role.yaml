@@ -1,0 +1,28 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  resources:
+  - applicationgenerators
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  resources:
+  - applicationgenerators/status
+  verbs:
+  - get
+  - patch
+  - update
