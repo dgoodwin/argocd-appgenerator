@@ -36,9 +36,7 @@ spec:
           description: ApplicationGeneratorSpec defines the desired state of ApplicationGenerator
           properties:
             applicationSpec:
-              description: ApplicationSpec represents desired application state. Contains
-                link to repository with application definition and additional parameters
-                link definition revision.
+              description: 'TODO: remove omitempty, this should not be optional'
               properties:
                 destination:
                   description: Destination overrides the kubernetes server and namespace
@@ -298,8 +296,6 @@ spec:
               description: Foo is an example field of ApplicationGenerator. Edit ApplicationGenerator_types.go
                 to remove/update
               type: string
-          required:
-          - applicationSpec
           type: object
         status:
           description: ApplicationGeneratorStatus defines the observed state of ApplicationGenerator

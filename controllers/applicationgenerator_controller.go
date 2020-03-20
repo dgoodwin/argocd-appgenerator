@@ -19,7 +19,10 @@ import (
 	"context"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +52,17 @@ type ApplicationGeneratorReconciler struct {
 func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("applicationgenerator", req.NamespacedName)
-	r.Log.V(1).Info("DING!")
+	log := r.Log.WithValues("appgenerator", req.NamespacedName)
+
+	ag := &appgenv1.ApplicationGenerator{}
+	err := r.Client.Get(context.Background(), req.NamespacedName, ag)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("not found", "ApplicationGenerator", req.NamespacedName)
+		}
+		return ctrl.Result{}, err
+	}
+	log.Info("reconciling")
 
 	// your logic here
 
@@ -76,30 +89,40 @@ type clusterSecretEventHandler struct {
 	Client client.Client
 }
 
+func (h *clusterSecretEventHandler) Create(e event.CreateEvent, q workqueue.RateLimitingInterface) {
+	h.queueRelatedAppGenerators(q, e.Meta)
+}
+
 func (h *clusterSecretEventHandler) Update(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	//h.Log.Info("processing cluster secret update", e)
+	h.queueRelatedAppGenerators(q, e.MetaNew)
 }
 
 func (h *clusterSecretEventHandler) Delete(e event.DeleteEvent, q workqueue.RateLimitingInterface) {
-	//h.Log.Info("processing cluster secret delete", e)
+	h.queueRelatedAppGenerators(q, e.Meta)
 }
 
 func (h *clusterSecretEventHandler) Generic(e event.GenericEvent, q workqueue.RateLimitingInterface) {
-	//h.Log.Info("processing cluster secret generic", e)
+	h.queueRelatedAppGenerators(q, e.Meta)
 }
 
-// Create implements handler.EventHandler
-func (h *clusterSecretEventHandler) Create(e event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (h *clusterSecretEventHandler) queueRelatedAppGenerators(q workqueue.RateLimitingInterface, meta metav1.Object) {
 	// Check for label, lookup all ApplicationGenerators that might match secret, queue them all
-	if e.Meta.GetLabels()[argoCDSecretTypeLabel] != argoCDSecretTypeCluster {
+	if meta.GetLabels()[argoCDSecretTypeLabel] != argoCDSecretTypeCluster {
 		return
 	}
 
-	h.Log.Info("processing cluster secret create", "namespace", e.Meta.GetNamespace(), "name", e.Meta.GetName())
-	h.Log.V(5).Info("listing all ApplicationGenerators")
+	h.Log.Info("processing cluster secret event", "namespace", meta.GetNamespace(), "name", meta.GetName())
 
-	//appGensList := appgenv1.ApplicationGeneratorList{}
-	//err := h.Client.List(context.Background(), appGensList)
-
-	//h.EnqueueRequestForOwner.Create(e, q)
+	appGensList := &appgenv1.ApplicationGeneratorList{}
+	err := h.Client.List(context.Background(), appGensList)
+	if err != nil {
+		h.Log.Error(err, "unable to list ApplicationGenerators")
+		return
+	}
+	h.Log.Info("listed ApplicationGenerators", "count", len(appGensList.Items))
+	for _, ag := range appGensList.Items {
+		// TODO: only queue the AppGenerator if the labels match this cluster
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ag.Namespace, Name: ag.Name}}
+		q.Add(req)
+	}
 }

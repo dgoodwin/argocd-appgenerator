@@ -31,7 +31,8 @@ type ApplicationGeneratorSpec struct {
 	// Foo is an example field of ApplicationGenerator. Edit ApplicationGenerator_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
 
-	ApplicationSpec argoapi.ApplicationSpec `json:"applicationSpec"`
+	// TODO: remove omitempty, this should not be optional
+	ApplicationSpec argoapi.ApplicationSpec `json:"applicationSpec,omitempty"`
 }
 
 // ApplicationGeneratorStatus defines the observed state of ApplicationGenerator
