@@ -23,7 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	appgeneratorrmrfcav1 "github.com/dgoodwin/argocd-appgenerator/api/v1"
+	appgenv1 "github.com/dgoodwin/argocd-appgenerator/api/v1"
 )
 
 // ApplicationGeneratorReconciler reconciles a ApplicationGenerator object
@@ -33,8 +33,8 @@ type ApplicationGeneratorReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=appgenerator.rm-rf.ca.appgenerator.rm-rf.ca,resources=applicationgenerators,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=appgenerator.rm-rf.ca.appgenerator.rm-rf.ca,resources=applicationgenerators/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=appgenerator.rm-rf.ca,resources=applicationgenerators,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=appgenerator.rm-rf.ca,resources=applicationgenerators/status,verbs=get;update;patch
 
 func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -47,6 +47,6 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 
 func (r *ApplicationGeneratorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appgeneratorrmrfcav1.ApplicationGenerator{}).
+		For(&appgenv1.ApplicationGenerator{}).
 		Complete(r)
 }

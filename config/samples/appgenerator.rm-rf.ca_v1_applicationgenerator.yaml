@@ -1,4 +1,4 @@
-apiVersion: appgenerator.rm-rf.ca.appgenerator.rm-rf.ca/v1
+apiVersion: appgenerator.rm-rf.ca/v1
 kind: ApplicationGenerator
 metadata:
   name: applicationgenerator-sample

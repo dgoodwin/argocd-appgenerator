@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.4
   creationTimestamp: null
-  name: applicationgenerators.appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  name: applicationgenerators.appgenerator.rm-rf.ca
 spec:
-  group: appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  group: appgenerator.rm-rf.ca
   names:
     kind: ApplicationGenerator
     listKind: ApplicationGeneratorList

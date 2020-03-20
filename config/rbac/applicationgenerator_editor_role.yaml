@@ -5,7 +5,7 @@ metadata:
   name: applicationgenerator-editor-role
 rules:
 - apiGroups:
-  - appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  - appgenerator.rm-rf.ca
   resources:
   - applicationgenerators
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - appgenerator.rm-rf.ca.appgenerator.rm-rf.ca
+  - appgenerator.rm-rf.ca
   resources:
   - applicationgenerators/status
   verbs:
