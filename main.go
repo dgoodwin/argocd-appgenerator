@@ -19,6 +19,7 @@ import (
 	"flag"
 	"os"
 
+	argoapi "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
 	appgeneratorrmrfcav1 "github.com/dgoodwin/argocd-appgenerator/api/v1"
 	"github.com/dgoodwin/argocd-appgenerator/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,6 +39,9 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = appgeneratorrmrfcav1.AddToScheme(scheme)
+
+	_ = argoapi.AddToScheme(scheme)
+
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -59,6 +63,7 @@ func main() {
 		LeaderElection:     enableLeaderElection,
 		Port:               9443,
 	})
+
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

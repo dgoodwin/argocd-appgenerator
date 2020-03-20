@@ -14,3 +14,6 @@ spec:
     source:
       path: config/samples/argocd-application
       repoURL: https://github.com/dgoodwin/argocd-appgenerator.git
+    syncPolicy:
+      automated:
+        prune: true

@@ -30,12 +30,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	argoapi "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
+
 	appgenv1 "github.com/dgoodwin/argocd-appgenerator/api/v1"
 )
 
 const (
 	argoCDSecretTypeLabel   = "argocd.argoproj.io/secret-type"
 	argoCDSecretTypeCluster = "cluster"
+	appGeneratorLabel       = "appgenerator.rm-rf.ca/from-generator"
 )
 
 // ApplicationGeneratorReconciler reconciles a ApplicationGenerator object
@@ -48,6 +51,7 @@ type ApplicationGeneratorReconciler struct {
 // +kubebuilder:rbac:groups=appgenerator.rm-rf.ca,resources=applicationgenerators,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=appgenerator.rm-rf.ca,resources=applicationgenerators/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;list;watch;create;update;patch;delete
 
 func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -65,7 +69,42 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	}
 	log.Info("reconciling")
 
-	// your logic here
+	// List all Clusters:
+	clusterSecretList := &corev1.SecretList{}
+	secretLabels := map[string]string{
+		argoCDSecretTypeLabel: argoCDSecretTypeCluster,
+	}
+	for k, v := range ag.Spec.ClusterSelector.MatchLabels {
+		secretLabels[k] = v
+	}
+	if err := r.Client.List(context.Background(), clusterSecretList, client.MatchingLabels(secretLabels)); err != nil {
+		return ctrl.Result{}, err
+	}
+	log.Info("clusters matching labels", "count", len(clusterSecretList.Items))
+
+	for _, clusterSecret := range clusterSecretList.Items {
+		app := &argoapi.Application{
+			ObjectMeta: metav1.ObjectMeta{
+				// Should Applications always go to same namespaces as the Cluster? namespace?
+				Namespace: ag.Namespace,
+				Name:      clusterSecret.Name, // TODO: need a consistent name combining cluster and app generator?
+				Labels: map[string]string{
+					appGeneratorLabel: ag.Name,
+				},
+				// TODO: owner ref to the ApplicationGenerator for free cleanup?
+			},
+			Spec: ag.Spec.ApplicationSpec,
+		}
+		// TODO: Check if application already exists and update if so.
+		if err := r.Client.Create(context.Background(), app); err != nil {
+			return ctrl.Result{}, err
+		}
+		log.Info("created argocd Application", "application", app.Name)
+	}
+
+	// TODO: make sure there are no orphaned Applications from this AppGenerator (labels removed)
+
+	// TODO: finalizer on AppGenerator, cleanup all Applications before allowing deletion
 
 	return ctrl.Result{}, nil
 }
@@ -80,6 +119,7 @@ func (r *ApplicationGeneratorReconciler) SetupWithManager(mgr ctrl.Manager) erro
 				Log:    ctrl.Log.WithName("eventhandler").WithName("clustersecret"),
 			}).
 		Complete(r)
+	// TODO: watch Applications and respond on changes if we own them.
 }
 
 var _ handler.EventHandler = &clusterSecretEventHandler{}
