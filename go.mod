@@ -14,6 +14,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.13.1 // indirect
+	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.2
 	k8s.io/kubernetes v1.17.2 // indirect
