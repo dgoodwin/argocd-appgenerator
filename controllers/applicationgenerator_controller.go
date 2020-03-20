@@ -59,6 +59,7 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("not found", "ApplicationGenerator", req.NamespacedName)
+			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}

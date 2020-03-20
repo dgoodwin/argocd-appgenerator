@@ -20,19 +20,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // ApplicationGeneratorSpec defines the desired state of ApplicationGenerator
 type ApplicationGeneratorSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// ClusterSelector is meant to match ArgoCD clusters dynamically. Note that presently ArgoCD represents clusters
+	// as a Secret with the label "argocd.argoproj.io/secret-type=cluster". Labels cannot be specified on this secret
+	// with the argocd CLI, so this must be done out of band. You can however specify the ArgoCD secret-type label
+	// itself as your selector to match all ArgoCD Clusters.
+	ClusterSelector metav1.LabelSelector `json:"clusterSelector,omitempty"`
 
-	// Foo is an example field of ApplicationGenerator. Edit ApplicationGenerator_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
-
-	// TODO: remove omitempty, this should not be optional
-	ApplicationSpec argoapi.ApplicationSpec `json:"applicationSpec,omitempty"`
+	// ApplicationSpec is an embedded ArgoCD ApplicationSpec definition. Any Clusters which match this AppGenerator will
+	// have an ArgoCD Application resource created for them.
+	ApplicationSpec argoapi.ApplicationSpec `json:"applicationSpec"`
 }
 
 // ApplicationGeneratorStatus defines the observed state of ApplicationGenerator

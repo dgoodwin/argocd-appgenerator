@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  game.properties: |
+    foo=bar
+    hello=world
+kind: ConfigMap
+metadata:
+  name: configmap-via-argocd
+  namespace: default

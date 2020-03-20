@@ -1,7 +1,16 @@
 apiVersion: appgenerator.rm-rf.ca/v1
 kind: ApplicationGenerator
 metadata:
-  name: applicationgenerator-sample
+  name: configmap-via-argocd-sample
 spec:
-  # Add fields here
-  foo: bar
+  matchLabels:
+    argocd.argoproj.io/secret-type: cluster
+  applicationSpec:
+    destination:
+      namespace: default
+      # server will be overwritten for every cluster that matches this generator.
+      server: https://kubernetes.default.svc
+    project: default
+    source:
+      path: config/samples/argocd-application
+      repoURL: https://github.com/dgoodwin/argocd-appgenerator.git
