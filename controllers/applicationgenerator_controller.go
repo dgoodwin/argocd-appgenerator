@@ -96,15 +96,27 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 			Spec: ag.Spec.ApplicationSpec,
 		}
 		// TODO: Check if application already exists and update if so.
-		if err := r.Client.Create(context.Background(), app); err != nil {
+		existingApp := &argoapi.Application{}
+		err = r.Client.Get(context.Background(), types.NamespacedName{Namespace: app.Namespace, Name: app.Name}, existingApp)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				log.Info("ArgoCD application does not yet exist, creating...", "name", app.Name)
+				if err := r.Client.Create(context.Background(), app); err != nil {
+					return ctrl.Result{}, err
+				}
+				log.Info("created argocd Application", "name", app.Name)
+			}
 			return ctrl.Result{}, err
+		} else {
+			log.Info("ArgoCD application already exists", "name", app.Name)
+			// TODO: make sure it's in expected state?
 		}
-		log.Info("created argocd Application", "application", app.Name)
+
 	}
 
 	// TODO: make sure there are no orphaned Applications from this AppGenerator (labels removed)
 
-	// TODO: finalizer on AppGenerator, cleanup all Applications before allowing deletion
+	// TODO: finalizer on AppGenerator, cleanup all Applications before allowing deletion. OwnerRef might make more sense here.
 
 	return ctrl.Result{}, nil
 }
