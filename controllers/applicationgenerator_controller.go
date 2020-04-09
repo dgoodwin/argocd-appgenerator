@@ -86,8 +86,13 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	}
 	log.Info("clusters matching labels", "count", len(clusterSecretList.Items))
 
+	// Track the list of applications that should exist for this generator, used to
+	// cleanup orphans after we're done.
+	expectedApps := map[string]bool{}
+
 	for _, clusterSecret := range clusterSecretList.Items {
 		appName := GetName(ag.Name, clusterSecret.Name, validation.DNS1123SubdomainMaxLength)
+		expectedApps[appName] = true
 		app := &argoapi.Application{
 			ObjectMeta: metav1.ObjectMeta{
 				// Should Applications always go to same namespaces as the AppGenerator? If not, we cannot use OwnerReferences.
@@ -118,10 +123,10 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 				if err := r.Client.Create(context.Background(), app); err != nil {
 					return ctrl.Result{}, err
 				}
-				log.Info("created argocd app", "name", app.Name)
-				return ctrl.Result{}, nil
+				log.Info("created app", "name", app.Name)
+			} else {
+				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, err
 		} else {
 			log.Info("app already exists", "name", app.Name)
 			origApp := existingApp.DeepCopy()
@@ -149,9 +154,24 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 
 	}
 
-	// TODO: make sure there are no orphaned Applications from this AppGenerator (labels removed)
-
-	// TODO: finalizer on AppGenerator, cleanup all Applications before allowing deletion. OwnerRef might make more sense here.
+	// Cleanup any orphaned Applications that should no longer exist:
+	log.Info("expected apps", "apps", expectedApps)
+	appList := &argoapi.ApplicationList{}
+	labels := map[string]string{
+		appGeneratorLabel: ag.Name,
+	}
+	if err := r.Client.List(context.Background(), appList, client.MatchingLabels(labels)); err != nil {
+		return ctrl.Result{}, err
+	}
+	log.Info("applications matching labels", "count", len(appList.Items))
+	for _, app := range appList.Items {
+		if !expectedApps[app.Name] {
+			log.Info("found orphaned app to delete", "app", app.Name)
+			if err := r.Client.Delete(context.Background(), &app); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -159,6 +179,7 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 func (r *ApplicationGeneratorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appgenv1.ApplicationGenerator{}).
+		// TODO: watch Applications?
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
 			&clusterSecretEventHandler{
