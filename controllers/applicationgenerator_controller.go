@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -85,7 +86,7 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	for _, clusterSecret := range clusterSecretList.Items {
 		app := &argoapi.Application{
 			ObjectMeta: metav1.ObjectMeta{
-				// Should Applications always go to same namespaces as the Cluster? namespace?
+				// Should Applications always go to same namespaces as the AppGenerator? If not, we cannot use OwnerReferences.
 				Namespace: ag.Namespace,
 				Name:      clusterSecret.Name, // TODO: need a consistent name combining cluster and app generator?
 				Labels: map[string]string{
@@ -110,7 +111,12 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 			return ctrl.Result{}, err
 		} else {
 			log.Info("ArgoCD application already exists", "name", app.Name)
-			// TODO: make sure it's in expected state?
+			origApp := existingApp.DeepCopy()
+			existingApp.Spec = ag.Spec.ApplicationSpec
+			if !reflect.DeepEqual(existingApp, origApp) {
+				log.Info("Application has changed, updating...")
+				return ctrl.Result{}, r.Client.Update(context.Background(), existingApp)
+			}
 		}
 
 	}
