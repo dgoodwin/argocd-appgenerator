@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/util/workqueue"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -59,6 +60,8 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	_ = r.Log.WithValues("applicationgenerator", req.NamespacedName)
 	log := r.Log.WithValues("appgenerator", req.NamespacedName)
 
+	// TODO: ArgoCD only acts on Applications in it's namespace
+
 	ag := &appgenv1.ApplicationGenerator{}
 	err := r.Client.Get(context.Background(), req.NamespacedName, ag)
 	if err != nil {
@@ -84,13 +87,23 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	log.Info("clusters matching labels", "count", len(clusterSecretList.Items))
 
 	for _, clusterSecret := range clusterSecretList.Items {
+		appName := GetName(ag.Name, clusterSecret.Name, validation.DNS1123SubdomainMaxLength)
 		app := &argoapi.Application{
 			ObjectMeta: metav1.ObjectMeta{
 				// Should Applications always go to same namespaces as the AppGenerator? If not, we cannot use OwnerReferences.
+				// TODO: no, everything should be in argocd namespace
 				Namespace: ag.Namespace,
-				Name:      clusterSecret.Name, // TODO: need a consistent name combining cluster and app generator?
+				Name:      appName,
 				Labels: map[string]string{
 					appGeneratorLabel: ag.Name,
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: ag.TypeMeta.APIVersion,
+						Kind:       ag.TypeMeta.Kind,
+						Name:       ag.Name,
+						UID:        ag.ObjectMeta.UID,
+					},
 				},
 				// TODO: owner ref to the ApplicationGenerator for free cleanup?
 			},
@@ -101,21 +114,36 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 		err = r.Client.Get(context.Background(), types.NamespacedName{Namespace: app.Namespace, Name: app.Name}, existingApp)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				log.Info("ArgoCD application does not yet exist, creating...", "name", app.Name)
+				log.Info("app does not yet exist, creating...", "name", app.Name)
 				if err := r.Client.Create(context.Background(), app); err != nil {
 					return ctrl.Result{}, err
 				}
-				log.Info("created argocd Application", "name", app.Name)
+				log.Info("created argocd app", "name", app.Name)
 				return ctrl.Result{}, nil
 			}
 			return ctrl.Result{}, err
 		} else {
-			log.Info("ArgoCD application already exists", "name", app.Name)
+			log.Info("app already exists", "name", app.Name)
 			origApp := existingApp.DeepCopy()
+
+			// Set expected ObjectMeta:
+			existingApp.ObjectMeta.Labels[appGeneratorLabel] = ag.Name
+			existingApp.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: ag.TypeMeta.APIVersion,
+					Kind:       ag.TypeMeta.Kind,
+					Name:       ag.Name,
+					UID:        ag.ObjectMeta.UID,
+				},
+			}
+
 			existingApp.Spec = ag.Spec.ApplicationSpec
+
 			if !reflect.DeepEqual(existingApp, origApp) {
-				log.Info("Application has changed, updating...")
+				log.Info("app has changed, updating...")
 				return ctrl.Result{}, r.Client.Update(context.Background(), existingApp)
+			} else {
+				log.Info("app is in expected state, no update required")
 			}
 		}
 
