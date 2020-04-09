@@ -105,6 +105,7 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 					return ctrl.Result{}, err
 				}
 				log.Info("created argocd Application", "name", app.Name)
+				return ctrl.Result{}, nil
 			}
 			return ctrl.Result{}, err
 		} else {
