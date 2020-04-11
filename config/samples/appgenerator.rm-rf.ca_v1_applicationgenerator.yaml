@@ -1,7 +1,7 @@
 apiVersion: appgenerator.rm-rf.ca/v1
 kind: ApplicationGenerator
 metadata:
-  name: configmap-via-argocd-sample
+  name: default-configmap
 spec:
   matchLabels:
     argocd.argoproj.io/secret-type: cluster

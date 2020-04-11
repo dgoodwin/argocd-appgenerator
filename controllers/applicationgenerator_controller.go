@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/util/workqueue"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -91,7 +90,7 @@ func (r *ApplicationGeneratorReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	expectedApps := map[string]bool{}
 
 	for _, clusterSecret := range clusterSecretList.Items {
-		appName := GetName(ag.Name, clusterSecret.Name, validation.DNS1123SubdomainMaxLength)
+		appName := GetName(ag.Name, clusterSecret.Name, 63)
 		expectedApps[appName] = true
 		app := &argoapi.Application{
 			ObjectMeta: metav1.ObjectMeta{
